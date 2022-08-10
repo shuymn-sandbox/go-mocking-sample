@@ -39,6 +39,7 @@ func (p *postUsecaseImpl) CreatePost(ctx context.Context, user *entity.User, inp
 		WithTitle(input.Title).
 		WithContent(bytes.NewBuffer(input.Content)).
 		WithPublishedAt(input.PublishedAt)
+
 	var err error
 	post, err = p.postRepository.CreatePost(ctx, post)
 	if err != nil {
