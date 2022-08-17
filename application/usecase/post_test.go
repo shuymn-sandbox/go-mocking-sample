@@ -18,30 +18,8 @@ import (
 	"github.com/shuymn-sandbox/go-mocking-sample/infrastructure/persistent/s3_mock"
 )
 
-// mockeryで生成されたPostRepositoryのmockを使う
-func TestPostUsecase_CreatePost_1(t *testing.T) {
-	// mockを初期化
-	mockPostRepository := &repository_mock.PostRepository{}
-	mockPostRepository.On("CreatePost", mock.Anything, mock.Anything).Return(entity.NewPost().WithID(1), nil)
-
-	// usecaseを初期化
-	uc := &postUsecaseImpl{
-		postRepository: mockPostRepository,
-	}
-
-	// CreatePostを呼ぶ
-	post, err := uc.CreatePost(context.Background(), entity.NewUser(), &CreatePostInput{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	// 返り値をテストする
-	if got := post.GetID(); got != 1 {
-		t.Errorf("id must be 1, but %d", got)
-	}
-}
-
 // Repositoryを分離したパターン
-func TestPostUsecase_CreatePost_TheOther(t *testing.T) {
+func TestPostUsecase_CreatePost_2(t *testing.T) {
 	// DBはmockしない
 	db, err := sqlx.Open("mysql", "")
 	if err != nil {
@@ -69,21 +47,31 @@ func TestPostUsecase_CreatePost_TheOther(t *testing.T) {
 	}
 }
 
-// persistent.postPersistentS3のmock
-type mockPostPersistentS3Impl struct {
-	uploadWithContextFunc func(aws.Context, *s3manager.UploadInput, ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
-}
+// mockeryで生成されたPostRepositoryのmockを使う
+func TestPostUsecase_CreatePost_1_問題あり(t *testing.T) {
+	// mockを初期化
+	mockPostRepository := &repository_mock.PostRepository{}
+	mockPostRepository.On("CreatePost", mock.Anything, mock.Anything).Return(entity.NewPost().WithID(1), nil)
 
-func (m *mockPostPersistentS3Impl) UploadWithContext(ctx aws.Context, input *s3manager.UploadInput, opts ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
-	if m == nil {
-		return nil, nil
+	// usecaseを初期化
+	uc := &postUsecaseImpl{
+		postRepository: mockPostRepository,
 	}
-	return m.uploadWithContextFunc(ctx, input, opts...)
+
+	// CreatePostを呼ぶ
+	post, err := uc.CreatePost(context.Background(), entity.NewUser(), &CreatePostInput{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 返り値をテストする
+	if got := post.GetID(); got != 1 {
+		t.Errorf("id must be 1, but %d", got)
+	}
 }
 
 // Repositoryを分離しないパターン
 // mockeryのmockではなく自前でmockを用意するパターン
-func TestPostUsecase_CreatePost_2(t *testing.T) {
+func TestPostUsecase_CreatePost_1_解決策(t *testing.T) {
 	// dbはmockしない
 	db, err := sqlx.Open("mysql", "")
 	if err != nil {
@@ -112,4 +100,16 @@ func TestPostUsecase_CreatePost_2(t *testing.T) {
 	if got := post.GetID(); got != 1 {
 		t.Errorf("id must be 1, but %d", got)
 	}
+}
+
+// persistent.postPersistentS3のmock
+type mockPostPersistentS3Impl struct {
+	uploadWithContextFunc func(aws.Context, *s3manager.UploadInput, ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error)
+}
+
+func (m *mockPostPersistentS3Impl) UploadWithContext(ctx aws.Context, input *s3manager.UploadInput, opts ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+	if m == nil {
+		return nil, nil
+	}
+	return m.uploadWithContextFunc(ctx, input, opts...)
 }
